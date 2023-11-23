@@ -1,0 +1,144 @@
+services:
+  # NGINX
+  nginx:
+    build: .
+    volumes:
+      - ./gateway.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    networks:
+      - mynetwork
+    container_name: api-gateway-laravel
+    depends_on:
+      - products_api
+      - notif_api
+      - user_api
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+  # Product Service
+  products_api:
+    build:
+      dockerfile: Dockerfile
+      context: ./laravel-sanctum-api
+    ports:
+      - "8000:8000"
+    networks:
+      - mynetwork
+    container_name: products_api
+    depends_on:
+      - db_products
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+  # Notif Service
+  notif_api:
+    build:
+      dockerfile: Dockerfile
+      context: ./laravel-mail-service
+    ports:
+      - "8001:8000"
+    networks:
+      - mynetwork
+    container_name: notif_api
+    depends_on:
+      - mailhog
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+  # User Service
+  user_api:
+    build:
+      dockerfile: Dockerfile
+      context: ./user-service
+    ports:
+      - "8002:8000"
+    networks:
+      - mynetwork
+    container_name: user_api
+    depends_on:
+      - db_users
+    labels:
+      logging: "promtail"
+      logging_jobname: "containerlogs"
+  # DB Product Service
+  db_products:
+    image: postgres:latest
+    ports:
+      - "5432:5432"
+    networks:
+      - mynetwork
+    container_name: db_products
+    environment:
+      POSTGRES_PASSWORD: s3cr3tp4ss
+    volumes:
+      - product_service_volume:/var/lib/postgresql/data
+  # DB User Service
+  db_users:
+    image: postgres:latest
+    ports:
+      - "5431:5432"
+    networks:
+      - mynetwork
+    container_name: db_users
+    environment:
+      POSTGRES_PASSWORD: s3cr3tp4ss
+    volumes:
+      - user_service_volume:/var/lib/postgresql/data
+  # Mailhog
+  mailhog:
+    image: mailhog/mailhog
+    ports:
+      - "8025:8025"
+      - "1025:1025"
+    networks:
+      - mynetwork
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - 3000:3000
+    volumes:
+      - ./config/grafana-datasources.yaml:/etc/grafana/provisioning/datasources/datasources.yaml
+    environment:
+      - GF_AUTH_ANONYMOUS_ENABLED=true
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Admin
+      - GF_AUTH_DISABLE_LOGIN_FORM=true
+    networks:
+      - mynetwork
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - 3100:3100
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - mynetwork
+  promtail:
+    image:  grafana/promtail:latest
+    container_name: promtail
+    volumes:
+      - ./config/promtail.yaml:/etc/promtail/docker-config.yaml
+      - /var/lib/docker/containers:/var/lib/docker/containers:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: -config.file=/etc/promtail/docker-config.yaml
+    depends_on:
+      - loki
+    networks:
+      - mynetwork
+  prometheus:
+    image: prom/prometheus:latest
+    command:
+      - --storage.tsdb.retention.time=7d
+      - --config.file=/etc/prometheus/prometheus.yml
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - mynetwork
+networks:
+  mynetwork:
+    external: true
+
+volumes:
+  product_service_volume:
+  user_service_volume:
