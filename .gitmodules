@@ -1,3 +1,12 @@
-[submodule "basic-laravel-rest"]
-	path = basic-laravel-rest
+[submodule "laravel-sanctum-api"]
+	path = laravel-sanctum-api
 	url = https://github.com/paulmhrdka/basic-laravel-rest
+
+[submodule "user-service"]
+	path = user-service
+	url = https://github.com/paulmhrdka/laravel-user-service
+
+[submodule "laravel-mail-service"]
+	path = laravel-mail-service
+	url = https://github.com/paulmhrdka/laravel-mail-service
+
