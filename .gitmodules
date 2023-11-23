@@ -1,0 +1,3 @@
+[submodule "basic-laravel-rest"]
+	path = basic-laravel-rest
+	url = https://github.com/paulmhrdka/basic-laravel-rest

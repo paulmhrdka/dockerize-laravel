@@ -135,6 +135,7 @@ services:
       - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
     networks:
       - mynetwork
+
 networks:
   mynetwork:
     external: true
